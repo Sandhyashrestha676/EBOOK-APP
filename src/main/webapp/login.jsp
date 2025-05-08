@@ -52,6 +52,17 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="role">Role</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-user-tag"></i>
+                            <select id="role" name="role" required>
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
                         <button type="submit" class="btn btn-primary">Login <i class="fas fa-sign-in-alt"></i></button>
                     </div>
                 </form>

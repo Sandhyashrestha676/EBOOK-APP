@@ -28,6 +28,7 @@ public class RegisterServlet extends HttpServlet {
             throws ServletException, IOException {
         String username = request.getParameter("username");
         String password = request.getParameter("password");
+
         String confirmPassword = request.getParameter("confirmPassword");
         String email = request.getParameter("email");
         String fullName = request.getParameter("fullName");
@@ -66,6 +67,13 @@ public class RegisterServlet extends HttpServlet {
         // Check if username already exists
         if (userDAO.getUserByUsername(username) != null) {
             request.setAttribute("errorMessage", "Username already exists");
+            request.getRequestDispatcher("/register.jsp").forward(request, response);
+            return;
+        }
+
+        // Check if email already exists
+        if (userDAO.getUserByEmail(email) != null) {
+            request.setAttribute("errorMessage", "Email address already exists. Please use a different email.");
             request.getRequestDispatcher("/register.jsp").forward(request, response);
             return;
         }

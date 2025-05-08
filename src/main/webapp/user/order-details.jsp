@@ -63,8 +63,16 @@
                                 %>
                                 <tr>
                                     <td>
-                                        <img src="<%= item.getBook().getImageUrl() != null ? item.getBook().getImageUrl() : "images/default-book.jpg" %>"
-                                             alt="<%= item.getBook().getTitle() %>" class="order-item-image">
+                                        <%
+                                        String imageUrl = item.getBook().getImageUrl();
+                                        if (imageUrl != null && !imageUrl.isEmpty()) {
+                                        %>
+                                            <img src="<%=request.getContextPath()%>/<%= imageUrl %>"
+                                                 alt="<%= item.getBook().getTitle() %>" class="order-item-image">
+                                        <% } else { %>
+                                            <img src="<%=request.getContextPath()%>/images/default-book.jpg"
+                                                 alt="<%= item.getBook().getTitle() %>" class="order-item-image">
+                                        <% } %>
                                     </td>
                                     <td><%= item.getBook().getTitle() %></td>
                                     <td>$<%= item.getPrice() %></td>

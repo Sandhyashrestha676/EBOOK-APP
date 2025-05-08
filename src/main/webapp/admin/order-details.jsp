@@ -19,14 +19,7 @@
                 <h1>Order Details</h1>
             </div>
 
-            <div class="dashboard-menu">
-                <ul>
-                    <li><a href="<%=request.getContextPath()%>/admin/dashboard">Dashboard</a></li>
-                    <li><a href="<%=request.getContextPath()%>/admin/books">Manage Books</a></li>
-                    <li><a href="<%=request.getContextPath()%>/admin/users">Manage Users</a></li>
-                    <li class="active"><a href="<%=request.getContextPath()%>/admin/orders">Manage Orders</a></li>
-                </ul>
-            </div>
+            <!-- Dashboard menu moved to header -->
 
             <div class="dashboard-content">
                 <% if (request.getParameter("updated") != null) { %>
@@ -50,6 +43,7 @@
                         </div>
 
                         <div class="order-actions">
+                            <% if (!"cancelled".equals(order.getStatus()) && !"delivered".equals(order.getStatus())) { %>
                             <form action="<%=request.getContextPath()%>/admin/orders" method="post">
                                 <input type="hidden" name="action" value="updateStatus">
                                 <input type="hidden" name="orderId" value="<%= order.getId() %>">
@@ -66,6 +60,11 @@
                                     <button type="submit" class="btn btn-primary">Update</button>
                                 </div>
                             </form>
+                            <% } else { %>
+                            <div class="form-group">
+                                <p class="status-note">This order is <%= order.getStatus().equals("cancelled") ? "cancelled" : "delivered" %> and cannot be modified.</p>
+                            </div>
+                            <% } %>
                         </div>
                     </div>
 
@@ -90,8 +89,16 @@
                                 %>
                                 <tr>
                                     <td>
-                                        <img src="<%= item.getBook().getImageUrl() != null ? item.getBook().getImageUrl() : "images/default-book.jpg" %>"
-                                             alt="<%= item.getBook().getTitle() %>" class="order-item-image">
+                                        <%
+                                        String imageUrl = item.getBook().getImageUrl();
+                                        if (imageUrl != null && !imageUrl.isEmpty()) {
+                                        %>
+                                            <img src="<%=request.getContextPath()%>/<%= imageUrl %>"
+                                                 alt="<%= item.getBook().getTitle() %>" class="order-item-image">
+                                        <% } else { %>
+                                            <img src="<%=request.getContextPath()%>/images/default-book.jpg"
+                                                 alt="<%= item.getBook().getTitle() %>" class="order-item-image">
+                                        <% } %>
                                     </td>
                                     <td><%= item.getBook().getTitle() %></td>
                                     <td>$<%= item.getPrice() %></td>

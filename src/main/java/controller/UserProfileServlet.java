@@ -81,8 +81,27 @@ public class UserProfileServlet extends HttpServlet {
 
         if (changePassword) {
             // Validate current password
-            if (!user.getPassword().equals(currentPassword)) {
-                request.setAttribute("currentPasswordError", "Current password is incorrect");
+            try {
+                String storedPassword = user.getPassword();
+                boolean passwordMatches = false;
+
+                try {
+                    // Try to decrypt the stored password and compare
+                    String decryptedPassword = util.PasswordUtil.decryptPassword(storedPassword, "U3CdwubLD5yQbUOG92ZnHw==");
+                    passwordMatches = decryptedPassword.equals(currentPassword);
+                } catch (Exception e) {
+                    // If decryption fails, fall back to direct comparison (for older non-encrypted passwords)
+                    System.out.println("Password decryption failed in profile, falling back to direct comparison: " + e.getMessage());
+                    passwordMatches = storedPassword.equals(currentPassword);
+                }
+
+                if (!passwordMatches) {
+                    request.setAttribute("currentPasswordError", "Current password is incorrect");
+                    hasError = true;
+                }
+            } catch (Exception e) {
+                System.out.println("Error validating current password: " + e.getMessage());
+                request.setAttribute("currentPasswordError", "Error validating password");
                 hasError = true;
             }
 

@@ -15,6 +15,7 @@ import java.util.List;
 public class BookServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private BookDAO bookDAO;
+    private static final int BOOKS_PER_PAGE = 8; // Number of books to display per page
 
     public void init() {
         bookDAO = new BookDAO();
@@ -27,22 +28,60 @@ public class BookServlet extends HttpServlet {
         System.out.println("BookServlet: pathInfo=" + pathInfo + ", category=" + category);
 
         if (pathInfo == null || pathInfo.equals("/")) {
+            // Get pagination parameters
+            int page = 1;
+            String pageParam = request.getParameter("page");
+            if (pageParam != null && !pageParam.isEmpty()) {
+                try {
+                    page = Integer.parseInt(pageParam);
+                    if (page < 1) {
+                        page = 1;
+                    }
+                } catch (NumberFormatException e) {
+                    // If page parameter is invalid, default to page 1
+                    page = 1;
+                }
+            }
+
+            int totalBooks;
             List<Book> books;
 
             // Check if category filter is applied
             if (category != null && !category.isEmpty()) {
-                // Get books by category
+                // Get books by category with pagination
                 System.out.println("Filtering by category: " + category);
-                books = bookDAO.getBooksByCategory(category);
+                totalBooks = bookDAO.getTotalBooksByCategory(category);
+                books = bookDAO.getBooksByCategory(category, page, BOOKS_PER_PAGE);
                 request.setAttribute("selectedCategory", category);
             } else {
-                // List all books
+                // List all books with pagination
                 System.out.println("Showing all books");
-                books = bookDAO.getAllBooks();
+                totalBooks = bookDAO.getTotalBooks();
+                books = bookDAO.getBooks(page, BOOKS_PER_PAGE);
             }
 
-            System.out.println("Found " + books.size() + " books");
+            // Calculate total pages
+            int totalPages = (int) Math.ceil((double) totalBooks / BOOKS_PER_PAGE);
+
+            // Ensure page doesn't exceed total pages
+            if (page > totalPages && totalPages > 0) {
+                page = totalPages;
+                // Reload books with corrected page
+                if (category != null && !category.isEmpty()) {
+                    books = bookDAO.getBooksByCategory(category, page, BOOKS_PER_PAGE);
+                } else {
+                    books = bookDAO.getBooks(page, BOOKS_PER_PAGE);
+                }
+            }
+
+            System.out.println("Found " + books.size() + " books on page " + page + " of " + totalPages);
+
+            // Set attributes for JSP
             request.setAttribute("books", books);
+            request.setAttribute("currentPage", page);
+            request.setAttribute("totalPages", totalPages);
+            request.setAttribute("booksPerPage", BOOKS_PER_PAGE);
+
             request.getRequestDispatcher("/books.jsp").forward(request, response);
         } else {
             // Get book details

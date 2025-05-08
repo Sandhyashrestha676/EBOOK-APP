@@ -17,33 +17,33 @@ import java.util.List;
 public class UserOrdersServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private OrderDAO orderDAO;
-    
+
     public void init() {
         orderDAO = new OrderDAO();
     }
-    
+
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");
-        
+
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
-        
+
         // Check if there's a success message
         String success = request.getParameter("success");
         if ("true".equals(success)) {
-            request.setAttribute("successMessage", "Your order has been placed successfully!");
+            request.setAttribute("successMessage", "Thank you for your purchase! Your order has been placed successfully and your payment has been processed. You will receive an email confirmation shortly.");
         }
-        
+
         // Get order details if specified
         String orderId = request.getParameter("id");
         if (orderId != null && !orderId.isEmpty()) {
             try {
                 int id = Integer.parseInt(orderId);
                 Order order = orderDAO.getOrderById(id);
-                
+
                 if (order != null && order.getUserId() == user.getId()) {
                     request.setAttribute("order", order);
                     request.getRequestDispatcher("/user/order-details.jsp").forward(request, response);
@@ -53,11 +53,11 @@ public class UserOrdersServlet extends HttpServlet {
                 // Invalid order ID, continue to show all orders
             }
         }
-        
+
         // Get all orders for the user
         List<Order> orders = orderDAO.getOrdersByUser(user.getId());
         request.setAttribute("orders", orders);
-        
+
         request.getRequestDispatcher("/user/orders.jsp").forward(request, response);
     }
 }

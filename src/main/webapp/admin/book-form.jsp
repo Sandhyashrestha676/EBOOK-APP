@@ -1,5 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="model.Book" %>
+<%@ page import="java.io.File" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,60 +11,108 @@
 </head>
 <body>
     <jsp:include page="../header.jsp" />
-    
+
     <div class="container">
         <div class="dashboard">
             <div class="dashboard-header">
-                <% 
+                <%
                 Book book = (Book) request.getAttribute("book");
-                if (book != null) {
+                boolean viewOnly = (request.getAttribute("viewOnly") != null && (Boolean)request.getAttribute("viewOnly"));
+
+                if (viewOnly) {
                 %>
+                <h1>View Book</h1>
+                <% } else if (book != null) { %>
                 <h1>Edit Book</h1>
                 <% } else { %>
                 <h1>Add New Book</h1>
                 <% } %>
             </div>
-            
-            <div class="dashboard-menu">
-                <ul>
-                    <li><a href="<%=request.getContextPath()%>/admin/dashboard">Dashboard</a></li>
-                    <li class="active"><a href="<%=request.getContextPath()%>/admin/books">Manage Books</a></li>
-                    <li><a href="<%=request.getContextPath()%>/admin/users">Manage Users</a></li>
-                    <li><a href="<%=request.getContextPath()%>/admin/orders">Manage Orders</a></li>
-                </ul>
-            </div>
-            
+
+            <!-- Dashboard menu moved to header -->
+
             <div class="dashboard-content">
                 <% if (request.getAttribute("errorMessage") != null) { %>
                 <div class="alert alert-error">
                     <%= request.getAttribute("errorMessage") %>
                 </div>
                 <% } %>
-                
+
                 <div class="form-container">
-                    <form action="<%=request.getContextPath()%>/admin/books" method="post">
+                    <% if (viewOnly) { %>
+                    <!-- View-only mode -->
+                    <div class="view-book-details">
+                        <ul class="book-details-list">
+                            <li>
+                                <div class="detail-label">Image:</div>
+                                <div class="detail-value">
+                                    <% if (book.getImageUrl() != null && !book.getImageUrl().isEmpty()) { %>
+                                    <img src="<%= request.getContextPath() + "/" + book.getImageUrl() %>" alt="<%= book.getTitle() %>">
+                                    <% } else { %>
+                                    <img src="<%= request.getContextPath() %>/images/default-book.jpg" alt="<%= book.getTitle() %>">
+                                    <% } %>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="detail-label">Title:</div>
+                                <div class="detail-value"><%= book.getTitle() %></div>
+                            </li>
+                            <li>
+                                <div class="detail-label">Author:</div>
+                                <div class="detail-value"><%= book.getAuthor() %></div>
+                            </li>
+                            <li>
+                                <div class="detail-label">Category:</div>
+                                <div class="detail-value"><%= book.getCategory() %></div>
+                            </li>
+                            <li>
+                                <div class="detail-label">Genre:</div>
+                                <div class="detail-value"><%= book.getGenre() %></div>
+                            </li>
+                            <li>
+                                <div class="detail-label">Price:</div>
+                                <div class="detail-value">$<%= book.getPrice() %></div>
+                            </li>
+                            <li>
+                                <div class="detail-label">Stock:</div>
+                                <div class="detail-value"><%= book.getStock() %> units</div>
+                            </li>
+                            <li>
+                                <div class="detail-label">Description:</div>
+                                <div class="detail-value"><%= book.getDescription() %></div>
+                            </li>
+                        </ul>
+
+                        <div class="form-actions">
+                            <a href="<%=request.getContextPath()%>/admin/books/edit/<%= book.getId() %>" class="btn btn-primary">Edit</a>
+                            <a href="<%=request.getContextPath()%>/admin/books" class="btn btn-secondary">Back</a>
+                        </div>
+                    </div>
+                    <% } else { %>
+                    <!-- Edit/Add mode -->
+                    <form action="<%=request.getContextPath()%>/admin/books" method="post" enctype="multipart/form-data" id="bookForm">
                         <% if (book != null) { %>
                         <input type="hidden" name="action" value="update">
                         <input type="hidden" name="id" value="<%= book.getId() %>">
                         <% } else { %>
                         <input type="hidden" name="action" value="add">
                         <% } %>
-                        
+
                         <div class="form-group">
                             <label for="title">Title</label>
                             <input type="text" id="title" name="title" value="<%= book != null ? book.getTitle() : "" %>" required>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="author">Author</label>
                             <input type="text" id="author" name="author" value="<%= book != null ? book.getAuthor() : "" %>" required>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="description">Description</label>
                             <textarea id="description" name="description" rows="5" required><%= book != null ? book.getDescription() : "" %></textarea>
                         </div>
-                        
+
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="category">Category</label>
@@ -75,42 +124,92 @@
                                     <option value="Technology" <%= book != null && "Technology".equals(book.getCategory()) ? "selected" : "" %>>Technology</option>
                                 </select>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="genre">Genre</label>
                                 <input type="text" id="genre" name="genre" value="<%= book != null ? book.getGenre() : "" %>" required>
                             </div>
                         </div>
-                        
+
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="price">Price</label>
                                 <input type="number" id="price" name="price" step="0.01" min="0" value="<%= book != null ? book.getPrice() : "" %>" required>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label for="stock">Stock</label>
                                 <input type="number" id="stock" name="stock" min="0" value="<%= book != null ? book.getStock() : "" %>" required>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
-                            <label for="imageUrl">Image URL</label>
-                            <input type="text" id="imageUrl" name="imageUrl" value="<%= book != null ? book.getImageUrl() : "" %>">
+                            <label for="bookImage">Book Image</label>
+                            <input type="file" id="bookImage" name="bookImage" accept="image/*" onchange="console.log('File selected: ' + this.files[0].name);">
+                            <% if (book != null && book.getImageUrl() != null && !book.getImageUrl().isEmpty()) { %>
+                            <div class="current-image">
+                                <p>Current image:</p>
+                                <%
+                                String imgPath = book.getImageUrl();
+                                String fullImagePath = request.getContextPath() + "/" + imgPath;
+                                System.out.println("Image path in JSP: " + imgPath);
+                                System.out.println("Full image URL: " + fullImagePath);
+                                %>
+                                <!-- Try different ways to reference the image -->
+                                <img src="<%= fullImagePath %>" alt="<%= book.getTitle() %>" style="max-width: 100px; max-height: 150px;">
+
+                                <!-- Also try with just the relative path -->
+                                <p>Alternative image display:</p>
+                                <img src="/<%= imgPath %>" alt="<%= book.getTitle() %>" style="max-width: 100px; max-height: 150px;">
+                                <p>Image path: <%= imgPath %></p>
+                                <p>Full URL: <%= fullImagePath %></p>
+
+                                <%
+                                // Check if the image file exists
+                                String realPath = application.getRealPath("/" + imgPath);
+                                File imageFile = new File(realPath);
+                                %>
+                                <p>Image file exists: <%= imageFile.exists() %></p>
+                                <p>Real path: <%= realPath %></p>
+                                <input type="hidden" name="currentImageUrl" value="<%= book.getImageUrl() %>">
+                            </div>
+                            <% } %>
+                            <p class="form-hint">Select an image file to upload. Supported formats: JPG, PNG, GIF.</p>
                         </div>
-                        
+
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
                             <a href="<%=request.getContextPath()%>/admin/books" class="btn btn-secondary">Cancel</a>
                         </div>
+
+                        <script>
+                        document.getElementById('bookForm').addEventListener('submit', function(e) {
+                            console.log('Form submission detected');
+
+                            // Check if a file is selected
+                            var fileInput = document.getElementById('bookImage');
+                            if (fileInput.files.length > 0) {
+                                console.log('File selected: ' + fileInput.files[0].name);
+                                console.log('File size: ' + fileInput.files[0].size + ' bytes');
+                            } else {
+                                console.log('No file selected');
+                            }
+
+                            // Log all form data
+                            var formData = new FormData(this);
+                            console.log('Form data:');
+                            for (var pair of formData.entries()) {
+                                console.log(pair[0] + ': ' + pair[1]);
+                            }
+                        });
+                        </script>
                     </form>
+                    <% } %>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <jsp:include page="../footer.jsp" />
-    
-    <script src="<%=request.getContextPath()%>/js/script.js"></script>
 </body>
 </html>

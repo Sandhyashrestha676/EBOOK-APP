@@ -2,13 +2,26 @@ package dao;
 
 import model.Book;
 import model.CartItem;
-import util.DatabaseUtil;
+import java.sql.DriverManager;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CartDAO {
+
+    static {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Database connection parameters
+    private static final String JDBC_URL = "jdbc:mysql://localhost:3306/ebookjava";
+    private static final String JDBC_USER = "root";
+    private static final String JDBC_PASSWORD = "oracle";
 
     public List<CartItem> getCartItems(int userId) {
         List<CartItem> cartItems = new ArrayList<>();
@@ -17,7 +30,7 @@ public class CartDAO {
         ResultSet rs = null;
 
         try {
-            conn = DatabaseUtil.getConnection();
+            conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
             String sql = "SELECT c.*, b.* FROM cart_items c JOIN books b ON c.book_id = b.id WHERE c.user_id = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, userId);
@@ -75,7 +88,7 @@ public class CartDAO {
         PreparedStatement stmt = null;
 
         try {
-            conn = DatabaseUtil.getConnection();
+            conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
 
             // Check if the item already exists in the cart
             String checkSql = "SELECT * FROM cart_items WHERE user_id = ? AND book_id = ?";
@@ -127,7 +140,7 @@ public class CartDAO {
         PreparedStatement stmt = null;
 
         try {
-            conn = DatabaseUtil.getConnection();
+            conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
             String sql = "UPDATE cart_items SET quantity = ? WHERE id = ? AND user_id = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, cartItem.getQuantity());
@@ -154,7 +167,7 @@ public class CartDAO {
         PreparedStatement stmt = null;
 
         try {
-            conn = DatabaseUtil.getConnection();
+            conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
             String sql = "DELETE FROM cart_items WHERE id = ? AND user_id = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, cartItemId);
@@ -180,7 +193,7 @@ public class CartDAO {
         PreparedStatement stmt = null;
 
         try {
-            conn = DatabaseUtil.getConnection();
+            conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
             String sql = "DELETE FROM cart_items WHERE user_id = ?";
             stmt = conn.prepareStatement(sql);
             stmt.setInt(1, userId);

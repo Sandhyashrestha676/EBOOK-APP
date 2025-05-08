@@ -1,5 +1,5 @@
--- Connect to the ebookstore database
-USE ebookstore;
+-- Connect to the ebookjava database
+USE ebookjava;
 
 -- Create payment table
 CREATE TABLE IF NOT EXISTS payments (

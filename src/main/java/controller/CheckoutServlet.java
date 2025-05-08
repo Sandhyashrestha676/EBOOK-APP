@@ -2,9 +2,11 @@ package controller;
 
 import dao.CartDAO;
 import dao.OrderDAO;
+import dao.PaymentDAO;
 import model.CartItem;
 import model.Order;
 import model.OrderItem;
+import model.Payment;
 import model.User;
 
 import jakarta.servlet.ServletException;
@@ -24,10 +26,12 @@ public class CheckoutServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private CartDAO cartDAO;
     private OrderDAO orderDAO;
+    private PaymentDAO paymentDAO;
 
     public void init() {
         cartDAO = new CartDAO();
         orderDAO = new OrderDAO();
+        paymentDAO = new PaymentDAO();
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -137,12 +141,53 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         // Save order to database
-        if (orderDAO.createOrder(order, orderItems)) {
+        int orderId = -1;
+        try {
+            orderId = orderDAO.createOrder(order, orderItems);
+        } catch (Exception e) {
+            System.out.println("Error creating order: " + e.getMessage());
+            e.printStackTrace();
+            request.setAttribute("errorMessage", "Failed to process your order. Please try again.");
+            request.getRequestDispatcher("/checkout.jsp").forward(request, response);
+            return;
+        }
+
+        if (orderId > 0) {
+            // Create payment record
+            Payment payment = new Payment();
+            payment.setOrderId(orderId);
+            payment.setPaymentMethod("Credit Card");
+            payment.setCardNumber(cardNumber);
+            payment.setCardHolderName(request.getParameter("cardName"));
+            payment.setExpiryDate(expiryDate);
+            payment.setCvv(cvv);
+            payment.setAmount(total);
+            payment.setStatus("completed");
+            payment.setTransactionId("TXN" + System.currentTimeMillis()); // Generate a transaction ID
+
+            // Save payment to database
+            try {
+                boolean paymentSaved = paymentDAO.createPayment(payment);
+
+                if (paymentSaved) {
+                    System.out.println("Payment saved successfully for order ID: " + orderId);
+                } else {
+                    System.out.println("Failed to save payment for order ID: " + orderId);
+                }
+            } catch (Exception e) {
+                System.out.println("Error saving payment: " + e.getMessage());
+                e.printStackTrace();
+            }
+
             // Clear cart after successful order
             cartDAO.clearCart(user.getId());
 
-            // Redirect to order confirmation
-            response.sendRedirect(request.getContextPath() + "/user/orders?success=true");
+            // Store the order and transaction ID in the session for the confirmation page
+            session.setAttribute("confirmedOrder", order);
+            session.setAttribute("transactionId", payment.getTransactionId());
+
+            // Redirect to order confirmation page
+            response.sendRedirect(request.getContextPath() + "/user/order-confirmation");
         } else {
             request.setAttribute("errorMessage", "Failed to process your order. Please try again.");
             request.getRequestDispatcher("/checkout.jsp").forward(request, response);

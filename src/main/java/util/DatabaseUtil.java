@@ -5,7 +5,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DatabaseUtil {
-    private static final String JDBC_URL = "jdbc:mysql://localhost:3306/ebookstore";
+    private static final String JDBC_URL = "jdbc:mysql://localhost:3306/ebookjava";
     private static final String JDBC_USER = "root";
     private static final String JDBC_PASSWORD = "oracle";
     

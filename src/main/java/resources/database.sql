@@ -1,5 +1,5 @@
 -- Create database
-CREATE DATABASE IF NOT EXISTS ebookstore;
+CREATE DATABASE IF NOT EXISTS ebookjava;
 USE ebookstore;
 
 -- Create tables

@@ -31,6 +31,7 @@
                     <% } else { %>
                     <li><a href="<%=request.getContextPath()%>/books">Books</a></li>
                     <li><a href="<%=request.getContextPath()%>/about">About</a></li>
+                    <li><a href="<%=request.getContextPath()%>/contact-us">Contact Us</a></li>
                     <li><a href="<%=request.getContextPath()%>/user/dashboard">Dashboard</a></li>
                     <li><a href="<%=request.getContextPath()%>/cart">Cart</a></li>
                     <li><a href="<%=request.getContextPath()%>/logout">Logout</a></li>
@@ -38,6 +39,7 @@
                     <% } else { %>
                     <li><a href="<%=request.getContextPath()%>/books">Books</a></li>
                     <li><a href="<%=request.getContextPath()%>/about">About</a></li>
+                    <li><a href="<%=request.getContextPath()%>/contact-us">Contact Us</a></li>
                     <li><a href="<%=request.getContextPath()%>/login">Login</a></li>
                     <li><a href="<%=request.getContextPath()%>/register">Register</a></li>
                     <% } %>
