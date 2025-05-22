@@ -409,6 +409,72 @@ public class BookDAO {
         return books;
     }
 
+    /**
+     * Check if a book with the same title and author already exists
+     * @param book The book to check
+     * @return true if a duplicate book exists, false otherwise
+     */
+    public boolean isDuplicateBook(Book book) {
+        return isDuplicateBook(book, 0); // 0 means no book ID to exclude
+    }
+
+    /**
+     * Check if a book with the same title and author already exists, excluding a specific book ID
+     * @param book The book to check
+     * @param excludeBookId The ID of the book to exclude from the check (for updates)
+     * @return true if a duplicate book exists, false otherwise
+     */
+    public boolean isDuplicateBook(Book book, int excludeBookId) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        boolean isDuplicate = false;
+
+        try {
+            conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
+            String sql;
+
+            if (excludeBookId > 0) {
+                // Exclude the book with the given ID (for updates)
+                sql = "SELECT COUNT(*) FROM books WHERE title = ? AND author = ? AND id != ?";
+            } else {
+                // Check for any book with the same title and author
+                sql = "SELECT COUNT(*) FROM books WHERE title = ? AND author = ?";
+            }
+
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, book.getTitle());
+            stmt.setString(2, book.getAuthor());
+
+            if (excludeBookId > 0) {
+                stmt.setInt(3, excludeBookId);
+                System.out.println("Checking for duplicate book: " + book.getTitle() + " by " + book.getAuthor() + ", excluding book ID: " + excludeBookId);
+            } else {
+                System.out.println("Checking for duplicate book: " + book.getTitle() + " by " + book.getAuthor());
+            }
+
+            rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                int count = rs.getInt(1);
+                isDuplicate = count > 0;
+                System.out.println("Found " + count + " existing books with the same title and author");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (stmt != null) stmt.close();
+                if (conn != null) conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return isDuplicate;
+    }
+
     public boolean addBook(Book book) {
         Connection conn = null;
         PreparedStatement stmt = null;

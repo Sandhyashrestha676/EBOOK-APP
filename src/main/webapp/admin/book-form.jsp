@@ -145,37 +145,70 @@
 
                         <div class="form-group">
                             <label for="bookImage">Book Image</label>
-                            <input type="file" id="bookImage" name="bookImage" accept="image/*" onchange="console.log('File selected: ' + this.files[0].name);">
-                            <% if (book != null && book.getImageUrl() != null && !book.getImageUrl().isEmpty()) { %>
-                            <div class="current-image">
-                                <p>Current image:</p>
-                                <%
-                                String imgPath = book.getImageUrl();
-                                String fullImagePath = request.getContextPath() + "/" + imgPath;
-                                System.out.println("Image path in JSP: " + imgPath);
-                                System.out.println("Full image URL: " + fullImagePath);
-                                %>
-                                <!-- Try different ways to reference the image -->
-                                <img src="<%= fullImagePath %>" alt="<%= book.getTitle() %>" style="max-width: 100px; max-height: 150px;">
-
-                                <!-- Also try with just the relative path -->
-                                <p>Alternative image display:</p>
-                                <img src="/<%= imgPath %>" alt="<%= book.getTitle() %>" style="max-width: 100px; max-height: 150px;">
-                                <p>Image path: <%= imgPath %></p>
-                                <p>Full URL: <%= fullImagePath %></p>
-
-                                <%
-                                // Check if the image file exists
-                                String realPath = application.getRealPath("/" + imgPath);
-                                File imageFile = new File(realPath);
-                                %>
-                                <p>Image file exists: <%= imageFile.exists() %></p>
-                                <p>Real path: <%= realPath %></p>
-                                <input type="hidden" name="currentImageUrl" value="<%= book.getImageUrl() %>">
+                            <div class="custom-file-upload">
+                                <input type="file" id="bookImage" name="bookImage" accept="image/*" onchange="previewImage(this);" class="file-input">
+                                <label for="bookImage" class="file-label">Choose a file</label>
+                                <span id="file-name">No file chosen</span>
                             </div>
-                            <% } %>
+
+                            <div id="image-preview-container" class="<%= (book != null && book.getImageUrl() != null && !book.getImageUrl().isEmpty()) ? "" : "hidden" %>">
+                                <div class="current-image">
+                                    <p id="preview-label"><%= (book != null && book.getImageUrl() != null && !book.getImageUrl().isEmpty()) ? "Current image:" : "Preview:" %></p>
+                                    <%
+                                    String imgPath = (book != null && book.getImageUrl() != null) ? book.getImageUrl() : "";
+                                    String fullImagePath = imgPath.isEmpty() ? "" : (request.getContextPath() + "/" + imgPath);
+                                    String altText = (book != null) ? book.getTitle() : "Preview";
+                                    %>
+                                    <img id="image-preview" src="<%= fullImagePath %>" alt="<%= altText %>" style="max-width: 150px; max-height: 200px;">
+                                    <% if (book != null && book.getImageUrl() != null && !book.getImageUrl().isEmpty()) { %>
+                                    <input type="hidden" name="currentImageUrl" value="<%= book.getImageUrl() %>">
+                                    <% } %>
+                                </div>
+                            </div>
                             <p class="form-hint">Select an image file to upload. Supported formats: JPG, PNG, GIF.</p>
                         </div>
+
+                        <script>
+                        function previewImage(input) {
+                            var fileNameSpan = document.getElementById('file-name');
+                            var previewContainer = document.getElementById('image-preview-container');
+                            var previewImage = document.getElementById('image-preview');
+                            var previewLabel = document.getElementById('preview-label');
+
+                            if (input.files && input.files[0]) {
+                                var fileName = input.files[0].name;
+                                fileNameSpan.textContent = fileName;
+                                fileNameSpan.style.borderLeftColor = '#28a745'; // Green border for success
+
+                                var reader = new FileReader();
+                                reader.onload = function(e) {
+                                    // Add a fade-in effect
+                                    previewImage.style.opacity = '0';
+                                    previewImage.src = e.target.result;
+                                    previewLabel.textContent = 'Preview:';
+                                    previewContainer.classList.remove('hidden');
+
+                                    // Fade in the image
+                                    setTimeout(function() {
+                                        previewImage.style.transition = 'opacity 0.5s ease';
+                                        previewImage.style.opacity = '1';
+                                    }, 50);
+                                };
+                                reader.readAsDataURL(input.files[0]);
+                            } else {
+                                fileNameSpan.textContent = 'No file chosen';
+                                fileNameSpan.style.borderLeftColor = '#007bff'; // Reset border color
+                            }
+                        }
+
+                        // Add animation to the Choose file button when the page loads
+                        document.addEventListener('DOMContentLoaded', function() {
+                            var fileLabel = document.querySelector('.file-label');
+                            fileLabel.style.transition = 'all 0.5s ease';
+                            fileLabel.style.transform = 'translateY(0)';
+                            fileLabel.style.opacity = '1';
+                        });
+                        </script>
 
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary" id="saveButton">Save</button>

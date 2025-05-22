@@ -37,19 +37,11 @@ public class AdminBooksServlet extends HttpServlet {
 
         // Create images directory at startup
         try {
-            // Get the real path to the web application root
-            String applicationPath = getServletContext().getRealPath("");
-            System.out.println("Application real path: " + applicationPath);
+            // Get the real path to the images directory
+            String imagesPath = getServletContext().getRealPath("/images");
+            System.out.println("Images directory real path: " + imagesPath);
 
-            // Create the images directory in a web-accessible location
-            String imagesPath = applicationPath + "images";
-            System.out.println("Images directory path: " + imagesPath);
-
-            // Also print the context path and real paths for debugging
-            System.out.println("Context path: " + getServletContext().getContextPath());
-            System.out.println("Real path of /: " + getServletContext().getRealPath("/"));
-            System.out.println("Real path of /images: " + getServletContext().getRealPath("/images"));
-
+            // Create the directory if it doesn't exist
             File imagesDir = new File(imagesPath);
             if (!imagesDir.exists()) {
                 boolean created = imagesDir.mkdirs();
@@ -100,41 +92,44 @@ public class AdminBooksServlet extends HttpServlet {
             System.out.println("ERROR: No filename submitted!");
             throw new IOException("No filename submitted");
         }
-        // Define a fixed upload directory path relative to the web application
-        // We'll use a direct path without File.separator to ensure web accessibility
-        String uploadDir = "images";
+
         System.out.println("Starting file upload process...");
         System.out.println("File part: " + filePart.getName() + ", Size: " + filePart.getSize());
 
+        // Get the original filename and sanitize it
         String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
-        System.out.println("Original filename: " + fileName);
+        // Remove any special characters that might cause issues
+        fileName = fileName.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
+        System.out.println("Sanitized filename: " + fileName);
 
         // Generate a unique filename to prevent overwriting
         String uniqueFileName = System.currentTimeMillis() + "_" + fileName;
         System.out.println("Generated unique filename: " + uniqueFileName);
 
-        // Get the real path to the images directory
-        // Make sure we're using a web-accessible path
-        String uploadPath = applicationPath + "images";
-        System.out.println("Upload directory path: " + uploadPath);
-
-        // Also print the context path for debugging
-        System.out.println("Context path would be: " + getServletContext().getContextPath());
-        System.out.println("Real path of /: " + getServletContext().getRealPath("/"));
-        System.out.println("Real path of /images: " + getServletContext().getRealPath("/images"));
+        // Get the real path to the images directory using getRealPath
+        String imagesPath = getServletContext().getRealPath("/images");
+        System.out.println("Images directory real path: " + imagesPath);
 
         // Create the directory if it doesn't exist
-        File uploadDirFile = new File(uploadPath);
-        if (!uploadDirFile.exists()) {
-            boolean created = uploadDirFile.mkdirs();
-            System.out.println("Created upload directory: " + created);
+        File imagesDir = new File(imagesPath);
+        if (!imagesDir.exists()) {
+            boolean created = imagesDir.mkdirs();
+            System.out.println("Created images directory: " + created);
+        }
+
+        // Verify directory exists and is writable
+        if (!imagesDir.exists() || !imagesDir.canWrite()) {
+            System.out.println("ERROR: Images directory doesn't exist or is not writable!");
+            System.out.println("Directory exists: " + imagesDir.exists());
+            System.out.println("Directory can write: " + imagesDir.canWrite());
+            throw new IOException("Cannot write to images directory");
         }
 
         // Create the full file path
-        String fullFilePath = uploadPath + File.separator + uniqueFileName;
+        String fullFilePath = imagesPath + File.separator + uniqueFileName;
         System.out.println("Full file path: " + fullFilePath);
 
-        // Save the file using a simpler approach
+        // Save the file
         try (InputStream input = filePart.getInputStream();
              java.io.FileOutputStream output = new java.io.FileOutputStream(fullFilePath)) {
 
@@ -152,17 +147,7 @@ public class AdminBooksServlet extends HttpServlet {
                 System.out.println("File size: " + savedFile.length() + " bytes");
             } else {
                 System.out.println("ERROR: File was not created!");
-            }
-
-            // List all files in the directory
-            System.out.println("Files in upload directory:");
-            File[] files = uploadDirFile.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    System.out.println("  " + file.getName() + " (" + file.length() + " bytes)");
-                }
-            } else {
-                System.out.println("  No files found or directory cannot be read");
+                throw new IOException("File was not created");
             }
         } catch (Exception e) {
             System.out.println("Error saving file: " + e.getMessage());
@@ -171,13 +156,9 @@ public class AdminBooksServlet extends HttpServlet {
         }
 
         // Return the relative path to be stored in the database
-        // Use a path that will be accessible from the web application
+        // This path will be used in HTML to reference the image
         String relativePath = "images/" + uniqueFileName;
         System.out.println("Relative path to be stored in database: " + relativePath);
-
-        // Also print what the full URL would be
-        String fullUrl = getServletContext().getContextPath() + "/" + relativePath;
-        System.out.println("Full URL would be: " + fullUrl);
 
         return relativePath;
     }
@@ -473,7 +454,13 @@ public class AdminBooksServlet extends HttpServlet {
                 book.setImageUrl("images/default-book.jpg"); // Default image path on error
             }
 
-            if (bookDAO.addBook(book)) {
+            // Check if book already exists before adding
+            if (bookDAO.isDuplicateBook(book)) {
+                System.out.println("Duplicate book detected: " + book.getTitle() + " by " + book.getAuthor());
+                request.setAttribute("errorMessage", "A book with the same title and author already exists");
+                request.setAttribute("book", book);
+                request.getRequestDispatcher("/admin/book-form.jsp").forward(request, response);
+            } else if (bookDAO.addBook(book)) {
                 response.sendRedirect(request.getContextPath() + "/admin/books?added=true");
             } else {
                 request.setAttribute("errorMessage", "Failed to add book");
@@ -553,7 +540,20 @@ public class AdminBooksServlet extends HttpServlet {
                 }
             }
 
-            if (bookDAO.updateBook(book)) {
+            // Get the original book to check if title/author changed
+            Book originalBook = bookDAO.getBookById(book.getId());
+
+            // Check for duplicate only if title or author changed
+            boolean titleOrAuthorChanged = originalBook != null &&
+                (!originalBook.getTitle().equals(book.getTitle()) ||
+                 !originalBook.getAuthor().equals(book.getAuthor()));
+
+            if (titleOrAuthorChanged && bookDAO.isDuplicateBook(book, book.getId())) {
+                System.out.println("Duplicate book detected during update: " + book.getTitle() + " by " + book.getAuthor());
+                request.setAttribute("errorMessage", "A book with the same title and author already exists");
+                request.setAttribute("book", book);
+                request.getRequestDispatcher("/admin/book-form.jsp").forward(request, response);
+            } else if (bookDAO.updateBook(book)) {
                 response.sendRedirect(request.getContextPath() + "/admin/books?updated=true");
             } else {
                 request.setAttribute("errorMessage", "Failed to update book");
